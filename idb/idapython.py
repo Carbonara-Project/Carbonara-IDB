@@ -529,7 +529,10 @@ class idc:
         self.bit_dis = {}
         self.seg_dis = {}
 
-        import capstone
+        try:
+            import capstone
+        except:
+            raise RuntimeError("capstone is not installed, use the original version of python-idb")
 
         PROC_CS_MAP = {
             # this is probably the only platform that is thoroughly tested in python-idb.

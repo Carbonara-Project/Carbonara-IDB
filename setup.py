@@ -14,9 +14,9 @@ from setuptools import setup, find_packages
 # python3.4 -m pip install
 
 setup(
-    name='python-idb',
+    name='carbonara-idb',
     version='0.4.0',
-    description='Pure Python parser for IDA Pro databases (.idb files)',
+    description='Pure Python parser for IDA Pro databases (.idb files). Fork used in Guanciale.',
     author='Willi Ballenthin',
     author_email='willi.ballenthin@gmail.com',
     url='https://github.com/williballenthin/python-idb',
@@ -24,7 +24,6 @@ setup(
     install_requires=[
         'six',
         'hexdump',
-        'capstone',
         'vivisect-vstruct-wb>=1.0.3',
     ],
     packages=find_packages(exclude=['*.tests', '*.tests.*']),
