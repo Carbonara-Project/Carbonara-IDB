@@ -19,7 +19,9 @@ setup(
     description='Pure Python parser for IDA Pro databases (.idb files). Fork used in Guanciale.',
     author='Willi Ballenthin',
     author_email='willi.ballenthin@gmail.com',
-    url='https://github.com/williballenthin/python-idb',
+    maintainer="Andrea Fioraldi",
+    maintainer_email="andreafioraldi@gmail.com",
+    url='https://github.com/Carbonara-Project/Carbonara-IDB',
     license='Apache License 2.0',
     install_requires=[
         'six',
