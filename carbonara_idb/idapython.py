@@ -4,8 +4,9 @@ import collections
 
 import six
 
-import idb.netnode
-import idb.analysis
+import carbonara_idb as idb
+import carbonara_idb.netnode
+import carbonara_idb.analysis
 
 
 logger = logging.getLogger(__name__)

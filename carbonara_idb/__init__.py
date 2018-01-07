@@ -5,7 +5,7 @@ import six
 # keep this here, so that its exposed as::
 #
 #    import idb.IDAPython
-from idb.idapython import IDAPython
+from carbonara_idb.idapython import IDAPython
 
 
 if six.PY2:

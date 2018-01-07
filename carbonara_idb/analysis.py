@@ -15,8 +15,8 @@ from vstruct.primitives import v_uint16
 from vstruct.primitives import v_uint32
 from vstruct.primitives import v_uint64
 
-import idb
-import idb.netnode
+import carbonara_idb as idb
+import carbonara_idb.netnode
 
 
 logger = logging.getLogger(__name__)
