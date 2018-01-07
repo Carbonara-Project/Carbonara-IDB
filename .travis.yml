@@ -14,6 +14,13 @@ install:
     - pip install -I --no-binary capstone
     - pip install --upgrade pep8 pytest-cov pytest flake8
     - pip install -e .
+    # capstone puts the .so in the wrong directory when installed via pip
+    # ref: https://github.com/aquynh/capstone/issues/445
+    - find /home/travis/virtualenv/ -name '*libcapstone.so'
+    - find /home/travis/virtualenv/ -name "capstone" -type d | sort
+    - mv -f $(find /home/travis/virtualenv/ -name '*libcapstone.so' | head -n 1) $(find /home/travis/virtualenv/ -name "capstone" -type d | sort | head -n 1)
+    - ls $(find /home/travis/virtualenv/ -name "capstone" -type d | sort | head -n 1)
+
 
 before_script:
     # stop the build if there are Python syntax errors or undefined names

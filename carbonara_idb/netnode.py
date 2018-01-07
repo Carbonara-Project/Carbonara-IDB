@@ -8,7 +8,6 @@ import six
 logger = logging.getLogger(__name__)
 
 
-
 def uint32(i):
     '''
     Convert the given signed number into its 32-bit little endian unsigned number value.
@@ -119,7 +118,7 @@ def parse_key(buf, wordsize=4):
 
     nodeid, tag = struct.unpack_from('>' + wordformat + 'c', buf, 1)
     tag = tag.decode('ascii')
-    if len(buf) > TAG_LENGTH + wordsize + KEY_HEADER_LENGTH:
+    if len(buf) >= TAG_LENGTH + 2 * wordsize + KEY_HEADER_LENGTH:
         offset = TAG_LENGTH + KEY_HEADER_LENGTH + wordsize
         index = struct.unpack_from('>' + wordformat, buf, offset)[0]
     else:

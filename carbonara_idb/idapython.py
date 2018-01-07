@@ -356,6 +356,19 @@ class ida_netnode:
 
 
 class idc:
+
+    SEGPERM_EXEC   = 1  # Execute
+    SEGPERM_WRITE  = 2  # Write
+    SEGPERM_READ   = 4  # Read
+    SEGPERM_MAXVAL = 7  # (SEGPERM_EXEC + SEGPERM_WRITE + SEGPERM_READ)
+
+    SFL_COMORG   = 0x01  # IDP dependent field (IBM PC: if set, ORG directive is not commented out)
+    SFL_OBOK     = 0x02  # orgbase is present? (IDP dependent field)
+    SFL_HIDDEN   = 0x04  # is the segment hidden?
+    SFL_DEBUG    = 0x08  # is the segment created for the debugger?
+    SFL_LOADER   = 0x10  # is the segment created by the loader?
+    SFL_HIDETYPE = 0x20  # hide segment type (do not print it in the listing)
+
     def __init__(self, db, api):
         self.idb = db
         self.api = api
@@ -380,23 +393,60 @@ class idc:
         # https://github.com/zachriggle/idapython/blob/37d2fd13b31fec8e6e53fbb9704fa3cd0cbd5b07/python/idc.py#L4149
         if self.idb.wordsize == 4:
             # function start address
-            self.FUNCATTR_START = 0
+            self.FUNCATTR_START   = 0
             # function end address
-            self.FUNCATTR_END = 4
+            self.FUNCATTR_END     = 4
             # function flags
-            self.FUNCATTR_FLAGS = 8
+            self.FUNCATTR_FLAGS   = 8
             # function frame id
-            self.FUNCATTR_FRAME = 10
+            self.FUNCATTR_FRAME   = 10
             # size of local variables
-            self.FUNCATTR_FRSIZE = 14
+            self.FUNCATTR_FRSIZE  = 14
             # size of saved registers area
-            self.FUNCATTR_FRREGS = 18
+            self.FUNCATTR_FRREGS  = 18
             # number of bytes purged from the stack
             self.FUNCATTR_ARGSIZE = 20
             # frame pointer delta
-            self.FUNCATTR_FPD = 24
+            self.FUNCATTR_FPD     = 24
             # function color code
-            self.FUNCATTR_COLOR = 28
+            self.FUNCATTR_COLOR   = 28
+
+            # starting address
+            self.SEGATTR_START   =  0
+            # ending address
+            self.SEGATTR_END     =  4
+            self.SEGATTR_ORGBASE = 16
+            # alignment
+            self.SEGATTR_ALIGN   = 20
+            # combination
+            self.SEGATTR_COMB    = 21
+            # permissions
+            self.SEGATTR_PERM    = 22
+            # bitness (0: 16, 1: 32, 2: 64 bit segment)
+            self.SEGATTR_BITNESS = 23
+            # segment flags
+            self.SEGATTR_FLAGS   = 24
+            # segment selector
+            self.SEGATTR_SEL     = 28
+            # default ES value
+            self.SEGATTR_ES      = 32
+            # default CS value
+            self.SEGATTR_CS      = 36
+            # default SS value
+            self.SEGATTR_SS      = 40
+            # default DS value
+            self.SEGATTR_DS      = 44
+            # default FS value
+            self.SEGATTR_FS      = 48
+            # default GS value
+            self.SEGATTR_GS      = 52
+            # segment type
+            self.SEGATTR_TYPE    = 96
+            # segment color
+            self.SEGATTR_COLOR   = 100
+
+            self.BADADDR = 0xFFFFFFFF
+
         elif self.idb.wordsize == 8:
             self.FUNCATTR_START   = 0
             self.FUNCATTR_END     = 8
@@ -409,23 +459,43 @@ class idc:
             self.FUNCATTR_COLOR   = 52
             self.FUNCATTR_OWNER   = 18
             self.FUNCATTR_REFQTY  = 26
+
+            self.SEGATTR_START   =  0
+            self.SEGATTR_END     =  8
+            self.SEGATTR_ORGBASE = 32
+            self.SEGATTR_ALIGN   = 40
+            self.SEGATTR_COMB    = 41
+            self.SEGATTR_PERM    = 42
+            self.SEGATTR_BITNESS = 43
+            self.SEGATTR_FLAGS   = 44
+            self.SEGATTR_SEL     = 48
+            self.SEGATTR_ES      = 56
+            self.SEGATTR_CS      = 64
+            self.SEGATTR_SS      = 72
+            self.SEGATTR_DS      = 80
+            self.SEGATTR_FS      = 88
+            self.SEGATTR_GS      = 96
+            self.SEGATTR_TYPE    = 184
+            self.SEGATTR_COLOR   = 188
+
+            self.BADADDR = 0xFFFFFFFFFFFFFFFF
         else:
             raise RuntimeError('unexpected wordsize')
 
     def ScreenEA(self):
         return self.api.ScreenEA
 
-    def SegStart(self, ea):
+    def _get_segment(self, ea):
         segs = idb.analysis.Segments(self.idb).segments
         for seg in segs.values():
             if seg.startEA <= ea < seg.endEA:
-                return seg.startEA
+                return seg
+
+    def SegStart(self, ea):
+        return self._get_segment(ea).startEA
 
     def SegEnd(self, ea):
-        segs = idb.analysis.Segments(self.idb).segments
-        for seg in segs.values():
-            if seg.startEA <= ea < seg.endEA:
-                return seg.endEA
+        return self._get_segment(ea).endEA
 
     def FirstSeg(self):
         segs = idb.analysis.Segments(self.idb).segments
@@ -438,14 +508,38 @@ class idc:
 
         for i, seg in enumerate(segs):
             if seg.startEA <= ea < seg.endEA:
-                return segs[i + 1].startEA
+                if i < len(segs) - 1:
+                    return segs[i + 1].startEA
+                else:
+                    return self.BADADDR
 
     def SegName(self, ea):
         segstrings = idb.analysis.SegStrings(self.idb).strings
-        segs = idb.analysis.Segments(self.idb).segments
-        for seg in segs.values():
-            if seg.startEA <= ea < seg.endEA:
-                return segstrings[seg.name_index]
+        return segstrings[self._get_segment(ea).name_index]
+
+    def GetSegmentAttr(self, ea, attr):
+        if attr == self.SEGATTR_START:
+            return self.SegStart(ea)
+        elif attr == self.SEGATTR_END:
+            return self.SegEnd(ea)
+        elif attr == self.SEGATTR_ORGBASE:
+            return self._get_segment(ea).orgbase
+        elif attr == self.SEGATTR_ALIGN:
+            return self._get_segment(ea).align
+        elif attr == self.SEGATTR_COMB:
+            return self._get_segment(ea).comb
+        elif attr == self.SEGATTR_PERM:
+            return self._get_segment(ea).perm
+        elif attr == self.SEGATTR_BITNESS:
+            return self._get_segment(ea).bitness
+        elif attr == self.SEGATTR_FLAGS:
+            return self._get_segment(ea).flags
+        elif attr == self.SEGATTR_TYPE:
+            return self._get_segment(ea).type
+        elif attr == self.SEGATTR_COLOR:
+            return self._get_segment(ea).color
+        else:
+            raise NotImplementedError('segment attribute %d not yet implemented' % (attr))
 
     def MinEA(self):
         segs = idb.analysis.Segments(self.idb).segments.values()
@@ -512,12 +606,26 @@ class idc:
         if use_dbg:
             raise NotImplementedError()
 
+        # can only read from one segment at a time
         if self.SegStart(ea) != self.SegStart(ea + size):
-            raise IndexError((ea, ea + size))
+            # edge case: when reading exactly to the end of the segment.
+            if ea + size == self.SegEnd(ea):
+                pass
+            else:
+                raise IndexError((ea, ea + size))
 
         ret = []
-        for i in range(ea, ea + size):
-            ret.append(self.IdbByte(i))
+        try:
+            for i in range(ea, ea + size):
+                ret.append(self.IdbByte(i))
+        except KeyError:
+            # we have already verified that that the requested range falls within a Segment.
+            # however, the underlying ID1 section may be smaller than the Segment.
+            # so, we pad the Segment with NULL bytes.
+            # this is consistent with the IDAPython behavior.
+            # see github issue #29.
+            ret.extend([0x0 for _ in  range(size - len(ret))])
+
         if six.PY2:
             return ''.join(map(chr, ret))
         else:
@@ -848,7 +956,6 @@ class idc:
             params=', '.join(params),
         )
 
-
     @staticmethod
     def hasValue(flags):
         return flags & FLAGS.FF_IVL > 0
@@ -958,13 +1065,16 @@ class ida_bytes:
     def get_cmt(self, ea, repeatable):
         flags = self.api.idc.GetFlags(ea)
         if not self.has_cmt(flags):
-            raise KeyError(ea)
+            return ''
 
-        nn = self.api.ida_netnode.netnode(ea)
-        if repeatable:
-            return nn.supstr(tag='S', index=1)
-        else:
-            return nn.supstr(tag='S', index=0)
+        try:
+            nn = self.api.ida_netnode.netnode(ea)
+            if repeatable:
+                return nn.supstr(tag='S', index=1)
+            else:
+                return nn.supstr(tag='S', index=0)
+        except KeyError:
+            return ''
 
     @staticmethod
     def isFunc(flags):
@@ -1297,6 +1407,33 @@ class ida_funcs:
                 return self.get_func(func.owner)
             else:
                 return func
+
+    def get_func_cmt(self, ea, repeatable):
+        # function comments are stored on the `$ funcs` netnode
+        # tag is either `R` or `C`.
+        # index is effective address of the function.
+        # for example::
+        #
+        #     nodeid: ff00000000000027 tag: C index: 0x401598
+        #     00000000: 72 65 70 20 63 6D 74 00                           rep cmt.
+        #     --
+        #     nodeid: ff00000000000027 tag: N index: None
+        #     00000000: 24 20 66 75 6E 63 73                              $ funcs
+        #     --
+        #     nodeid: ff00000000000027 tag: R index: 0x401598
+        #     00000000: 72 65 70 20 63 6D 74 00                           rep cmt.
+        #
+        # i think its a bug that when you set a repeatable function via the IDA UI,
+        # it also sets a local function comment.
+        nn = self.api.ida_netnode.netnode('$ funcs')
+        try:
+            if repeatable:
+                tag = 'R'
+            else:
+                tag = 'C'
+            return nn.supstr(tag=tag, index=ea)
+        except KeyError:
+            return ''
 
 
 class BasicBlock(object):
@@ -1697,4 +1834,3 @@ class IDAPython:
         self.ida_netnode = ida_netnode(db, self)
         self.ida_nalt = ida_nalt(db, self)
         self.ida_entry = ida_entry(db, self)
-

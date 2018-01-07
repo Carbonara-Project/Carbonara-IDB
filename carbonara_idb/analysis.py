@@ -295,7 +295,7 @@ class _Analysis(object):
           KeyError: if the field does not exist.
         '''
         if key not in self._fields_by_name:
-            return super(Analysis, self).__getattr__(key)
+            return super(_Analysis, self).__getattribute__(key)
 
         field = self._fields_by_name[key]
         if field.index in VARIABLE_INDEXES:
@@ -517,22 +517,6 @@ OriginalUser = Analysis('$ original user', [
 # see `scripts/dump_user.py` for intepretation.
 User = Analysis('$ user1', [
     Field('data', 'S', 0, bytes),
-])
-
-
-# '$ entry points' maps from ordinal/address to function name.
-#
-# supvals:
-#   format1
-#     index: export ordinal
-#     value: function name
-#   format2
-#     index: EA
-#     value: function name
-EntryPoints = Analysis('$ entry points', [
-    Field('ordinals',  'S', NUMBERS, idb.netnode.as_string),
-    Field('addresses', 'S', ADDRESSES, idb.netnode.as_string),
-    Field('all',       'S', ALL, idb.netnode.as_string),
 ])
 
 
@@ -1102,14 +1086,14 @@ class Seg:
         self.startEA = u.addr()
         self.endEA = self.startEA + u.addr()
         # index into `$ segstrings` array of strings.
-        self.name_index = u.dd()
+        self.name_index = u.addr()
 
         # via: https://www.hex-rays.com/products/ida/support/sdkdoc/classsegment__t.html
         # use get/set_segm_class() functions
-        self.sclass = u.dd()
+        self.sclass = u.addr()
         # this field is IDP dependent.
         # TODO: needs non-zero test
-        self.orgbase = u.dd()
+        self.orgbase = u.addr()
         # Segment flags
         self.flags = u.dd()
         # Segment alignment codes
