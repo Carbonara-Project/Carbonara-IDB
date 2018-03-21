@@ -227,10 +227,10 @@ class _Analysis(object):
     def __init__(self, db, nodeid, fields):
         self.idb = db
         self.nodeid = nodeid
-        self.netnode = idb.netnode.Netnode(db, nodeid)
+        self.netnode = carbonara_idb.netnode.Netnode(db, nodeid)
         self.fields = fields
 
-        idb_version = idb.netnode.Netnode(db, 'Root Node').altval(index=-1)
+        idb_version = carbonara_idb.netnode.Netnode(db, 'Root Node').altval(index=-1)
 
         # note that order of fields is important:
         #   fields with matching minvers override previously defined fields of the same name
@@ -491,20 +491,20 @@ class IdaInfo(vstruct.VStruct):
 
 
 Root = Analysis('Root Node', [
-    Field('crc',            'A', -5,       idb.netnode.as_int),
-    Field('open_count',     'A', -4,       idb.netnode.as_int),
+    Field('crc',            'A', -5,       carbonara_idb.netnode.as_int),
+    Field('open_count',     'A', -4,       carbonara_idb.netnode.as_int),
     Field('created',        'A', -2,       as_unix_timestamp),
-    Field('version',        'A', -1,       idb.netnode.as_int),
+    Field('version',        'A', -1,       carbonara_idb.netnode.as_int),
     Field('md5',            'S', 1302,     as_md5),
-    Field('version_string', 'S', 1303,     idb.netnode.as_string),
+    Field('version_string', 'S', 1303,     carbonara_idb.netnode.as_string),
     Field('idainfo',        'S', 0x41b994, as_cast(IdaInfo)),
-    Field('input_file_path','V', None,     idb.netnode.as_string)
+    Field('input_file_path','V', None,     carbonara_idb.netnode.as_string)
 ])
 
 
 Loader = Analysis('$ loader name', [
-    Field('plugin', 'S', 0, idb.netnode.as_string),
-    Field('format', 'S', 1, idb.netnode.as_string),
+    Field('plugin', 'S', 0, carbonara_idb.netnode.as_string),
+    Field('format', 'S', 1, carbonara_idb.netnode.as_string),
 ])
 
 
@@ -656,7 +656,7 @@ class StructMember:
         self.idb = db
 
         self.nodeid = nodeid
-        self.netnode = idb.netnode.Netnode(db, self.nodeid)
+        self.netnode = carbonara_idb.netnode.Netnode(db, self.nodeid)
 
     def get_name(self):
         return self.netnode.name().partition('.')[2]
@@ -738,12 +738,12 @@ class Struct:
         self.idb = db
 
         # if structid doesn't start with 0xFF0000..., add it.
-        nodebase = idb.netnode.Netnode.get_nodebase(db)
+        nodebase = carbonara_idb.netnode.Netnode.get_nodebase(db)
         if structid < nodebase:
             structid += nodebase
 
         self.nodeid = structid
-        self.netnode = idb.netnode.Netnode(db, self.nodeid)
+        self.netnode = carbonara_idb.netnode.Netnode(db, self.nodeid)
 
     def get_members(self):
         v = self.netnode.supval(tag='M', index=0)
@@ -809,7 +809,7 @@ class Function:
     def __init__(self, db, fva):
         self.idb = db
         self.nodeid = fva
-        self.netnode = idb.netnode.Netnode(db, self.nodeid)
+        self.netnode = carbonara_idb.netnode.Netnode(db, self.nodeid)
 
     def get_name(self):
         try:
@@ -920,7 +920,7 @@ def _get_xrefs(db, tag, src=None, dst=None, types=None):
     if not src and not dst:
         raise ValueError('one of src or dst must be provided')
 
-    nn = idb.netnode.Netnode(db, src or dst)
+    nn = carbonara_idb.netnode.Netnode(db, src or dst)
     try:
         for entry in nn.charentries(tag=tag):
             if (types and entry.value in types) or (not types):
@@ -1141,9 +1141,9 @@ Segments = Analysis('$ segs', [
 
 Imports = Analysis('$ imports', [
     # index: entry number, value: node id
-    Field('lib_netnodes', 'A', NUMBERS, idb.netnode.as_uint),
+    Field('lib_netnodes', 'A', NUMBERS, carbonara_idb.netnode.as_uint),
     # index: entry number, value: dll name
-    Field('lib_names', 'S', NUMBERS, idb.netnode.as_string),
+    Field('lib_names', 'S', NUMBERS, carbonara_idb.netnode.as_string),
 ])
 
 
@@ -1164,7 +1164,7 @@ def enumerate_imports(db):
 
         # dereference the node id stored in the A val
         nnref = imps.lib_netnodes[index]
-        nn = idb.netnode.Netnode(db, nnref)
+        nn = carbonara_idb.netnode.Netnode(db, nnref)
 
         for funcaddr in nn.sups():
             try:
@@ -1177,17 +1177,17 @@ def enumerate_imports(db):
 
 EntryPoints = Analysis('$ entry points', [
     # index: ordinal, value: address, terminated by index: uint(-1)
-    Field('functions', 'A', NUMBERS, idb.netnode.as_uint),
+    Field('functions', 'A', NUMBERS, carbonara_idb.netnode.as_uint),
     # index: address, value: address, should be only one?
-    Field('main_entry', 'A', ADDRESSES, idb.netnode.as_uint),
+    Field('main_entry', 'A', ADDRESSES, carbonara_idb.netnode.as_uint),
     # index: ordinal, value: ordinal
-    Field('ordinals', 'I', NUMBERS, idb.netnode.as_uint),
+    Field('ordinals', 'I', NUMBERS, carbonara_idb.netnode.as_uint),
     # index: ordinal, value: string like (NTDLL!Rtl...)
-    Field('forwarded_symbols', 'F', NUMBERS, idb.netnode.as_string),
+    Field('forwarded_symbols', 'F', NUMBERS, carbonara_idb.netnode.as_string),
     # index: ordinal, value: string like (Rtl...)
-    Field('function_names', 'S', NUMBERS, idb.netnode.as_string),
+    Field('function_names', 'S', NUMBERS, carbonara_idb.netnode.as_string),
     # index: address, value: string like (Rtl...), should be only one?
-    Field('main_entry_name', 'S', ADDRESSES, idb.netnode.as_string),
+    Field('main_entry_name', 'S', ADDRESSES, carbonara_idb.netnode.as_string),
 ])
 
 
